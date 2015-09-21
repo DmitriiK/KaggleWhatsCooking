@@ -32,6 +32,9 @@ make_simple_df <- function(data){
                 ingredients_list[agrep("garlic", ingredients_list)] <- "garlic"
                 ingredients_list[agrep("milk", ingredients_list)] <- "milk"
                 ingredients_list[agrep("onion", ingredients_list)] <- "onion"
+                ingredients_list[agrep("chicken", ingredients_list)] <- "chicken"
+                ingredients_list[agrep("tofu", ingredients_list)] <- "tofu"
+                ingredients_list[agrep("spinach", ingredients_list)] <- "spinach"
                 
                 
                 
@@ -42,6 +45,9 @@ make_simple_df <- function(data){
                 ingredients_list = gsub("ground","", ingredients_list)
                 ingredients_list = gsub("fresh","", ingredients_list)
                 ingredients_list = gsub("large","", ingredients_list)
+                ingredients_list = gsub("fine","", ingredients_list)
+                ingredients_list = gsub("purpose","", ingredients_list)
+                ingredients_list = gsub("all","", ingredients_list)
 
                 id = data[[i]]$id
                 cuisine = NA
@@ -83,7 +89,22 @@ corpus <- VCorpus(VectorSource(DF_unprocessed$ingredients))
 dtm <- DocumentTermMatrix(corpus,
                           control = list(removePunctuation = TRUE,
                                          stopwords = TRUE))
-dtm_clean <- inspect(removeSparseTerms(dtm, 0.899))
+dtm_clean <- inspect(removeSparseTerms(dtm, 0.999))
+
+dtm_clean <- data.frame(dtm_clean)
+dtm_clean <- data.frame(lapply(dtm_clean, as.factor))
+
+for (i in (1:dim(dtm_clean)[2]))
+{
+        if (nlevels(dtm_clean[,i])>2)
+        {
+                dtm_clean[,i] = as.integer(levels(dtm_clean[,i]))[dtm_clean[,i]]
+                dtm_clean[,i][dtm_clean[,i]>1] = 1
+                dtm_clean[,i] = as.factor(dtm_clean[,i])
+        }
+}
+
+#low_variance_index <- nearZeroVar(dtm_clean, freqCut = 200/1)
 
 # Make final test (submission) and training datasets and save them
 train_data = data.frame(cbind(DF_unprocessed$id[1:n], dtm_clean[1:n,], cuisine))
@@ -92,5 +113,7 @@ submission_data = data.frame(cbind(DF_unprocessed$id[-1:-n], dtm_clean[-1:-n,]))
 train_data <- data.frame(lapply(train_data, as.factor))
 submission_data <- data.frame(lapply(submission_data, as.factor))
 
-save(train_data, file = "train_data899.rda")
-save(submission_data, file = "submission_data899.rda")
+
+
+save(train_data, file = "train_data999.rda")
+save(submission_data, file = "submission_data999.rda")

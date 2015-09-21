@@ -17,8 +17,8 @@ library(tm)
 set.seed(1)
 setwd("C:/Users/User/Documents/R/kaggle_cooking/")
 
-load(file="submission_data.rda")
-load(file="train_data.rda")
+load(file="submission_data999.rda")
+load(file="train_data999.rda")
 
 
 # Further partitioning our original training data into training and test sets
@@ -30,27 +30,31 @@ remainder        <- train_data[-inTrain,]
 ####
 
 
-# Parameters for caret's train
-fitControl <- trainControl(method = "repeatedcv",        # do repeated Cross Validation
-                           number = 2,                   # 2-fold
-                           repeats = 1)                  # repeat 2 times each 
+
+
 
 
 #### MODELS
 
 
 # Generalised linear model
-ctree <- train(cuisine~.,
-             data = training[-1], 
-             method = "rf",
-             tuneLength = 1,
+
+# Parameters for caret's train
+fitControl <- trainControl(method = "cv",        # do repeated Cross Validation
+                           number = 3)
+
+GLM <- train(cuisine~.,
+             data = training[1:15000,-1], 
+             method = "bayesglm",
+             tuneLength = 2,
              trControl = fitControl
 )
+
+prediction_GLM <- predict(GLM, newdata = remainder[-1])
+confusionMatrix(remainder$cuisine, prediction_GLM)
+
 save(ctree, file = "ctree.rda")
 load(file = "ctree.rda")
-
-prediction_ctree <- predict(ctree, newdata = remainder[-1])
-confusionMatrix(remainder$cuisine, prediction_ctree)
 
 
 
@@ -80,20 +84,54 @@ confusionMatrix(remainder$cuisine, prediction_gbm)
 
 
 # RF
-mtryGrid <- expand.grid(mtry = 22) # you can put different values for mtry
-
+mtryGrid <- expand.grid(mtry = c(3, 7, 12, 18)) # you can put different values for mtry
+rfControl <- trainControl(method = "oob")                  
 
 rf <- train(cuisine~.,
-               data = training[-1], 
+               data = train_data[-1], 
                method = "rf",
-               ntree  = 1500,
                tuneGrid = mtryGrid,
                tuneLength = 1,
-               trControl = fitControl
+               ntree = 1500,
+               trControl = rfControl,
+               varImp = TRUE
 )
-save(ctree, file = "rf.rda")
-load(file = "rf.rda")
-
 prediction_rf <- predict(rf, newdata = remainder[-1])
 confusionMatrix(remainder$cuisine, prediction_rf)
+save(rf, file = "rf.rda")
+load(file = "rf.rda")
+
+
+
+# NNET3,5,10,15,20,30,
+nnetGrid=expand.grid(.size=c(5),.decay=c(0.001,0.05,0.1,0.2))
+
+nnet <- train(cuisine~.,
+            data = training[-1], 
+            method = "nnet",
+            tuneGrid = nnetGrid,
+            max.iter = 1000,
+            MaxNWts = 100000
+            
+)
+prediction_nnet <- predict(nnet, newdata = remainder[-1])
+confusionMatrix(remainder$cuisine, prediction_nnet)
+save(nnet, file = "nnet.rda")
+load(file = "nnet.rda")
+
+
+# RPART
+
+
+rpart <- train(cuisine~.,
+              data = training[-1], 
+              method = "rpart",
+              trControl = fitControl
+              
+)
+prediction_rpart <- predict(rpart, newdata = remainder[-1])
+confusionMatrix(remainder$cuisine, prediction_rpart)
+save(rpart, file = "rpart.rda")
+load(file = "rpart.rda")
+
 
