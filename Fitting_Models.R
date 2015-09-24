@@ -11,6 +11,7 @@ library(RColorBrewer)
 library(rms)
 library(qdap)
 library(tm)
+library(foreach)
 
 
 # Set seed for reproducibility and also set working directory
@@ -84,8 +85,12 @@ confusionMatrix(remainder$cuisine, prediction_gbm)
 
 
 # RF
-mtryGrid <- expand.grid(mtry = c(3, 7, 12, 18)) # you can put different values for mtry
-rfControl <- trainControl(method = "oob")                  
+mtryGrid <- expand.grid(mtry = c (7,  18)) # you can put different values for mtry
+rfControl <- trainControl(method = "oob",allowParallel = TRUE)       
+
+
+require(doParallel)
+registerDoParallel(cores = 2)
 
 rf <- train(cuisine~.,
                data = train_data[-1], 
@@ -93,14 +98,14 @@ rf <- train(cuisine~.,
                tuneGrid = mtryGrid,
                tuneLength = 1,
                ntree = 1500,
-               trControl = rfControl,
-               varImp = TRUE
+               trControl = rfControl
 )
+closeAllConnections()
+
 prediction_rf <- predict(rf, newdata = remainder[-1])
 confusionMatrix(remainder$cuisine, prediction_rf)
 save(rf, file = "rf.rda")
 load(file = "rf.rda")
-
 
 
 # NNET3,5,10,15,20,30,
